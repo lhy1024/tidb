@@ -19,6 +19,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/pingcap/log"
 	"io"
 	"math"
 	"net/http"
@@ -39,7 +40,6 @@ import (
 	"github.com/pingcap/tidb/util/codec"
 	"github.com/pingcap/tidb/util/logutil"
 	"github.com/pingcap/tidb/util/pdapi"
-	log "github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 )
 
@@ -803,8 +803,8 @@ func (h *Helper) GetSST(address string) ([]Sst, error) {
 	sst := Sst{
 		Name:     "1",
 		Level:    2,
-		StartKey: "7480000000000000FF745F698000000000FF0000010380000000FF0000137F03800000FF0000367E45000000FC",
-		EndKey:   "7480000000000000FF745F698000000000FF0000010380000000FF0000138303800000FF000011543F000000FC",
+		StartKey: "7480000000000000FF745F728000000001FF26D4CC0000000000FA",
+		EndKey:   "7480000000000000FF745F728000000001FF2D26F80000000000FA",
 		StoreId:  5,
 	}
 	return []Sst{sst}, nil
@@ -861,7 +861,7 @@ func (h *Helper) GetPDRegionStats(tableID int64, stats *PDRegionStats) error {
 
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			log.Error(err)
+			log.Info("err")
 		}
 	}()
 
@@ -875,10 +875,11 @@ func (h *Helper) GetPDRegions(startKey string) (*RegionsInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	statURL := fmt.Sprintf("%s://%s/pd/api/v1/stats/regions/key?key=%s",
+
+	statURL := fmt.Sprintf("%s://%s/pd/api/v1/regions/key?key=%s",
 		util.InternalHTTPSchema(),
 		pdAddrs[0],
-		url.QueryEscape(string(startKey)))
+		url.QueryEscape(startKey))
 
 	resp, err := util.InternalHTTPClient().Get(statURL)
 	if err != nil {
@@ -887,12 +888,13 @@ func (h *Helper) GetPDRegions(startKey string) (*RegionsInfo, error) {
 
 	defer func() {
 		if err = resp.Body.Close(); err != nil {
-			log.Error(err)
+			log.Info("err")
 		}
 	}()
 	info := &RegionsInfo{}
 	dec := json.NewDecoder(resp.Body)
 	dec.Decode(info)
+	log.Info("sst", zap.String("url", statURL), zap.Int64("count", info.Count))
 	return info, nil
 }
 func (h *Helper) GetPDRegionsWithKeys(startKey, endKey string) []int64 {
@@ -909,7 +911,7 @@ func (h *Helper) GetPDRegionsWithKeys(startKey, endKey string) []int64 {
 		in := false
 		for _, j := range end.Regions {
 			if region.ID == j.ID {
-				in = true
+				//in = true
 				break
 			}
 		}

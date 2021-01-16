@@ -1892,6 +1892,7 @@ func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
 			return err
 		}
 		for _, sst := range ssts {
+			log.Info("sst", zap.String("name", sst.Name))
 			regionIDs := tikvHelper.GetPDRegionsWithKeys(sst.StartKey, sst.EndKey)
 			for _, regionID := range regionIDs {
 				tableID, err := tikvHelper.GetTableIDByRegionID(uint64(regionID), allSchemas)
