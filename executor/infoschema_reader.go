@@ -142,6 +142,8 @@ func (e *memtableRetriever) retrieve(ctx context.Context, sctx sessionctx.Contex
 			err = e.setDataForStatementsSummary(sctx, e.table.Name.O)
 		case infoschema.TablePlacementPolicy:
 			err = e.setDataForPlacementPolicy(sctx)
+		case infoschema.TableSST:
+			err = e.setDataForTableSST(sctx)
 		}
 		if err != nil {
 			return nil, err
@@ -1864,6 +1866,10 @@ func (e *memtableRetriever) setDataForPlacementPolicy(ctx sessionctx.Context) er
 		}
 	}
 	e.rows = rows
+	return nil
+}
+
+func  (e *memtableRetriever)setDataForTableSST(ctx sessionctx.Context) error {
 	return nil
 }
 
