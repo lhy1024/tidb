@@ -758,12 +758,41 @@ func (h *Helper) GetStoresStat() (*StoresStat, error) {
 	return &storesStat, nil
 }
 
-//
-//
-//// GetSST
-//func (h *Helper) GetSST() (*StoresStat, error) {
-//
-//}
+type Sst struct {
+	Name     string `json:"name"`
+	StoreId  uint64 `json:"store_id"`
+	Level    uint64 `json:"level"`
+	StartKey string `json:"start_key"`
+	EndKey   string `json:"end_key"`
+}
+
+// GetSST
+func (h *Helper) GetSST(address string) ([]Sst, error) {
+	//req, err := http.NewRequest("GET", util.InternalHTTPSchema()+"://"+address+"/engine/sst_status", nil)
+	//if err != nil {
+	//	return nil, errors.Trace(err)
+	//}
+	//resp, err := util.InternalHTTPClient().Do(req)
+	//defer func() {
+	//	err = resp.Body.Close()
+	//	if err != nil {
+	//		logutil.BgLogger().Error("close body failed", zap.Error(err))
+	//	}
+	//}()
+	//var sst Sst
+	//err = json.NewDecoder(resp.Body).Decode(&sst)
+	//if err != nil {
+	//	return nil, errors.Trace(err)
+	//}
+	sst := Sst{
+		Name:     "1",
+		Level:    2,
+		StartKey: "7480000000000000FF775F728000000000FF0027040000000000FA",
+		EndKey:   "7480000000000000FF8B5F698000000000FF0000010380000000FF0000138803800000FF000000163C000000FC",
+		StoreId:  5,
+	}
+	return []Sst{sst}, nil
+}
 
 // GetPDAddr return the PD Address.
 func (h *Helper) GetPDAddr() ([]string, error) {

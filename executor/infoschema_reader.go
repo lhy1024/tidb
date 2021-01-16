@@ -1884,15 +1884,20 @@ func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
 		return err
 	}
 	for _, storeStat := range storesStat.Stores {
-		// storeStat.Store.Address
-		row := types.MakeDatums(
-			0,   //table id
-			"1", //table name
-			"2", // sst name
-			3,   // region id
-			4,   //level
-			storeStat.Store.ID)
-		rows = append(rows, row)
+		ssts,err:=tikvHelper.GetSST(storeStat.Store.Address)
+		if err!=nil{
+			return err
+		}
+		for _,sst:=range ssts {
+			row := types.MakeDatums(
+				0,         //table id
+				"1",       //table name
+				sst.Name,  // sst name
+				3,         // region id
+				sst.Level, //level
+				storeStat.Store.ID)
+			rows = append(rows, row)
+		}
 	}
 	e.rows = rows
 	return nil
