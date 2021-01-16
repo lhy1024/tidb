@@ -18,6 +18,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/pingcap/log"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -1879,24 +1881,32 @@ func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
 		Store:       tikvStore,
 		RegionCache: tikvStore.GetRegionCache(),
 	}
+	allSchemas := ctx.GetSessionVars().TxnCtx.InfoSchema.(infoschema.InfoSchema).AllSchemas()
 	storesStat, err := tikvHelper.GetStoresStat()
 	if err != nil {
 		return err
 	}
 	for _, storeStat := range storesStat.Stores {
-		ssts,err:=tikvHelper.GetSST(storeStat.Store.Address)
-		if err!=nil{
+		ssts, err := tikvHelper.GetSST(storeStat.Store.Address)
+		if err != nil {
 			return err
 		}
-		for _,sst:=range ssts {
-			row := types.MakeDatums(
-				0,         //table id
-				"1",       //table name
-				sst.Name,  // sst name
-				3,         // region id
-				sst.Level, //level
-				storeStat.Store.ID)
-			rows = append(rows, row)
+		for _, sst := range ssts {
+			regionIDs := tikvHelper.GetPDRegionsWithKeys(sst.StartKey, sst.EndKey)
+			for _, regionID := range regionIDs {
+				tableID, err := tikvHelper.GetTableIDByRegionID(uint64(regionID), allSchemas)
+				if err == nil {
+					log.Info("error table id", zap.Error(err))
+				}
+				row := types.MakeDatums(
+					tableID,   //table id
+					sst.Name,  // sst name
+					regionID,  // region id
+					sst.Level, //level
+					storeStat.Store.ID)
+				rows = append(rows, row)
+			}
+
 		}
 	}
 	e.rows = rows

@@ -230,6 +230,22 @@ func (h *Helper) FetchRegionTableIndex(metrics map[uint64]RegionMetric, allSchem
 	return hotTables, nil
 }
 
+// GetTableIDByRegionID
+func (h *Helper) GetTableIDByRegionID(regionID uint64, allSchemas []*model.DBInfo) (int64, error) {
+	region, err := h.RegionCache.LocateRegionByID(tikv.NewBackofferWithVars(context.Background(), 500, nil), regionID)
+	if err != nil {
+		logutil.BgLogger().Error("locate region failed", zap.Error(err))
+		return 0, err
+	}
+
+	hotRange, err := NewRegionFrameRange(region)
+	if err != nil {
+		return 0, err
+	}
+	f := h.FindTableIndexOfRegion(allSchemas, hotRange)
+	return f.TableID, nil
+}
+
 // FindTableIndexOfRegion finds what table is involved in this hot region. And constructs the new frame item for future use.
 func (h *Helper) FindTableIndexOfRegion(allSchemas []*model.DBInfo, hotRange *RegionFrameRange) *FrameItem {
 	for _, db := range allSchemas {
@@ -852,4 +868,54 @@ func (h *Helper) GetPDRegionStats(tableID int64, stats *PDRegionStats) error {
 	dec := json.NewDecoder(resp.Body)
 
 	return dec.Decode(stats)
+}
+
+func (h *Helper) GetPDRegions(startKey string) (*RegionsInfo, error) {
+	pdAddrs, err := h.GetPDAddr()
+	if err != nil {
+		return nil, err
+	}
+	statURL := fmt.Sprintf("%s://%s/pd/api/v1/stats/regions/key?key=%s",
+		util.InternalHTTPSchema(),
+		pdAddrs[0],
+		url.QueryEscape(string(startKey)))
+
+	resp, err := util.InternalHTTPClient().Get(statURL)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			log.Error(err)
+		}
+	}()
+	info := &RegionsInfo{}
+	dec := json.NewDecoder(resp.Body)
+	dec.Decode(info)
+	return info, nil
+}
+func (h *Helper) GetPDRegionsWithKeys(startKey, endKey string) []int64 {
+	var regionIDs []int64
+	start, err := h.GetPDRegions(startKey)
+	if err != nil {
+		return regionIDs
+	}
+	end, err := h.GetPDRegions(endKey)
+	if err != nil {
+		return regionIDs
+	}
+	for _, region := range start.Regions {
+		in := false
+		for _, j := range end.Regions {
+			if region.ID == j.ID {
+				in = true
+				break
+			}
+		}
+		if !in {
+			regionIDs = append(regionIDs, region.ID)
+		}
+	}
+	return regionIDs
 }
