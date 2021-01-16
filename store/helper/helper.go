@@ -758,6 +758,13 @@ func (h *Helper) GetStoresStat() (*StoresStat, error) {
 	return &storesStat, nil
 }
 
+//
+//
+//// GetSST
+//func (h *Helper) GetSST() (*StoresStat, error) {
+//
+//}
+
 // GetPDAddr return the PD Address.
 func (h *Helper) GetPDAddr() ([]string, error) {
 	etcd, ok := h.Store.(tikv.EtcdBackend)

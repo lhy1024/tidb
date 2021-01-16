@@ -1292,7 +1292,7 @@ var tablePlacementPolicyCols = []columnInfo{
 	{name: "CONSTRAINTS", tp: mysql.TypeVarchar, size: 1024},
 }
 
-var tableSST=[]columnInfo{
+var tableSSTCols =[]columnInfo{
 	{name: "TABLE_ID", tp: mysql.TypeLonglong, size: 21},
 	{name: "TABLE_NAME", tp: mysql.TypeVarchar, size: 64},
 	{name: "SST_NAME", tp: mysql.TypeVarchar, size: 64},
@@ -1657,17 +1657,17 @@ var tableNameToColumns = map[string][]columnInfo{
 	TableMetricSummary:                      tableMetricSummaryCols,
 	TableMetricSummaryByLabel:               tableMetricSummaryByLabelCols,
 	TableMetricTables:                       tableMetricTablesCols,
-	TableInspectionSummary:                  tableInspectionSummaryCols,
-	TableInspectionRules:                    tableInspectionRulesCols,
-	TableDDLJobs:                            tableDDLJobsCols,
-	TableSequences:                          tableSequencesCols,
-	TableStatementsSummary:                  tableStatementsSummaryCols,
-	TableStatementsSummaryHistory:           tableStatementsSummaryCols,
-	TableStorageStats:                       tableStorageStatsCols,
-	TableTiFlashTables:                      tableTableTiFlashTablesCols,
-	TableTiFlashSegments:                    tableTableTiFlashSegmentsCols,
-	TablePlacementPolicy:                    tablePlacementPolicyCols,
-	TableSST:                                tableSST,
+	TableInspectionSummary:        tableInspectionSummaryCols,
+	TableInspectionRules:          tableInspectionRulesCols,
+	TableDDLJobs:                  tableDDLJobsCols,
+	TableSequences:                tableSequencesCols,
+	TableStatementsSummary:        tableStatementsSummaryCols,
+	TableStatementsSummaryHistory: tableStatementsSummaryCols,
+	TableStorageStats:             tableStorageStatsCols,
+	TableTiFlashTables:            tableTableTiFlashTablesCols,
+	TableTiFlashSegments:          tableTableTiFlashSegmentsCols,
+	TablePlacementPolicy:          tablePlacementPolicyCols,
+	TableSST:                      tableSSTCols,
 }
 
 func createInfoSchemaTable(_ autoid.Allocators, meta *model.TableInfo) (table.Table, error) {

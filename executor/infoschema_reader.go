@@ -1025,12 +1025,12 @@ func (e *memtableRetriever) setDataFromEngines() {
 	var rows [][]types.Datum
 	rows = append(rows,
 		types.MakeDatums(
-			"InnoDB",  // Engine
-			"DEFAULT", // Support
+			"InnoDB",                                                     // Engine
+			"DEFAULT",                                                    // Support
 			"Supports transactions, row-level locking, and foreign keys", // Comment
-			"YES", // Transactions
-			"YES", // XA
-			"YES", // Savepoints
+			"YES",                                                        // Transactions
+			"YES",                                                        // XA
+			"YES",                                                        // Savepoints
 		),
 	)
 	e.rows = rows
@@ -1709,14 +1709,14 @@ func (e *memtableRetriever) setDataForServersInfo() error {
 	rows := make([][]types.Datum, 0, len(serversInfo))
 	for _, info := range serversInfo {
 		row := types.MakeDatums(
-			info.ID,              // DDL_ID
-			info.IP,              // IP
-			int(info.Port),       // PORT
-			int(info.StatusPort), // STATUS_PORT
-			info.Lease,           // LEASE
-			info.Version,         // VERSION
-			info.GitHash,         // GIT_HASH
-			info.BinlogStatus,    // BINLOG_STATUS
+			info.ID,                                       // DDL_ID
+			info.IP,                                       // IP
+			int(info.Port),                                // PORT
+			int(info.StatusPort),                          // STATUS_PORT
+			info.Lease,                                    // LEASE
+			info.Version,                                  // VERSION
+			info.GitHash,                                  // GIT_HASH
+			info.BinlogStatus,                             // BINLOG_STATUS
 			stringutil.BuildStringFromLabels(info.Labels), // LABELS
 		)
 		rows = append(rows, row)
@@ -1784,10 +1784,10 @@ func (e *memtableRetriever) dataForTableTiFlashReplica(ctx sessionctx.Context, s
 				}
 			}
 			record := types.MakeDatums(
-				schema.Name.O,                   // TABLE_SCHEMA
-				tbl.Name.O,                      // TABLE_NAME
-				tbl.ID,                          // TABLE_ID
-				int64(tbl.TiFlashReplica.Count), // REPLICA_COUNT
+				schema.Name.O,                                        // TABLE_SCHEMA
+				tbl.Name.O,                                           // TABLE_NAME
+				tbl.ID,                                               // TABLE_ID
+				int64(tbl.TiFlashReplica.Count),                      // REPLICA_COUNT
 				strings.Join(tbl.TiFlashReplica.LocationLabels, ","), // LOCATION_LABELS
 				tbl.TiFlashReplica.Available,                         // AVAILABLE
 				progress,                                             // PROGRESS
@@ -1869,7 +1869,32 @@ func (e *memtableRetriever) setDataForPlacementPolicy(ctx sessionctx.Context) er
 	return nil
 }
 
-func  (e *memtableRetriever)setDataForTableSST(ctx sessionctx.Context) error {
+func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
+	var rows [][]types.Datum
+	tikvStore, ok := ctx.GetStore().(tikv.Storage)
+	if !ok {
+		return errors.New("Information about TiKV store status can be gotten only when the storage is TiKV")
+	}
+	tikvHelper := &helper.Helper{
+		Store:       tikvStore,
+		RegionCache: tikvStore.GetRegionCache(),
+	}
+	storesStat, err := tikvHelper.GetStoresStat()
+	if err != nil {
+		return err
+	}
+	for _, storeStat := range storesStat.Stores {
+		// storeStat.Store.Address
+		row := types.MakeDatums(
+			0,   //table id
+			"1", //table name
+			"2", // sst name
+			3,   // region id
+			4,   //level
+			storeStat.Store.ID)
+		rows = append(rows, row)
+	}
+	e.rows = rows
 	return nil
 }
 
