@@ -784,28 +784,21 @@ type Sst struct {
 
 // GetSST
 func (h *Helper) GetSST(address string) ([]Sst, error) {
-	//req, err := http.NewRequest("GET", util.InternalHTTPSchema()+"://"+address+"/engine/sst_status", nil)
-	//if err != nil {
-	//	return nil, errors.Trace(err)
-	//}
-	//resp, err := util.InternalHTTPClient().Do(req)
-	//defer func() {
-	//	err = resp.Body.Close()
-	//	if err != nil {
-	//		logutil.BgLogger().Error("close body failed", zap.Error(err))
-	//	}
-	//}()
-	//var sst Sst
-	//err = json.NewDecoder(resp.Body).Decode(&sst)
-	//if err != nil {
-	//	return nil, errors.Trace(err)
-	//}
-	sst := Sst{
-		Name:     "1",
-		Level:    2,
-		StartKey: "7480000000000000FF745F728000000001FF26D4CC0000000000FA",
-		EndKey:   "7480000000000000FF745F728000000001FF2D26F80000000000FA",
-		StoreId:  5,
+	req, err := http.NewRequest("GET", util.InternalHTTPSchema()+"://"+address+"/engine/sst_status", nil)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	resp, err := util.InternalHTTPClient().Do(req)
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			logutil.BgLogger().Error("close body failed", zap.Error(err))
+		}
+	}()
+	var sst Sst
+	err = json.NewDecoder(resp.Body).Decode(&sst)
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
 	return []Sst{sst}, nil
 }
@@ -911,7 +904,7 @@ func (h *Helper) GetPDRegionsWithKeys(startKey, endKey string) []int64 {
 		in := false
 		for _, j := range end.Regions {
 			if region.ID == j.ID {
-				//in = true
+				in = true
 				break
 			}
 		}
