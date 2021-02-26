@@ -1294,6 +1294,7 @@ var tablePlacementPolicyCols = []columnInfo{
 
 var tableSSTCols =[]columnInfo{
 	{name: "TABLE_ID", tp: mysql.TypeLonglong, size: 21},
+	{name: "TABLE_NAME", tp: mysql.TypeVarchar, size: 64},
 	{name: "SST_NAME", tp: mysql.TypeVarchar, size: 64},
 	{name: "REGION_ID", tp: mysql.TypeLonglong, size: 21},
 	{name: "LEVEL", tp: mysql.TypeLonglong, size: 21},

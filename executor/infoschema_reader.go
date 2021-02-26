@@ -18,8 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pingcap/log"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -27,6 +25,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pingcap/log"
+	"go.uber.org/zap"
 
 	"github.com/cznic/mathutil"
 	"github.com/pingcap/errors"
@@ -1027,12 +1028,12 @@ func (e *memtableRetriever) setDataFromEngines() {
 	var rows [][]types.Datum
 	rows = append(rows,
 		types.MakeDatums(
-			"InnoDB",                                                     // Engine
-			"DEFAULT",                                                    // Support
+			"InnoDB",  // Engine
+			"DEFAULT", // Support
 			"Supports transactions, row-level locking, and foreign keys", // Comment
-			"YES",                                                        // Transactions
-			"YES",                                                        // XA
-			"YES",                                                        // Savepoints
+			"YES", // Transactions
+			"YES", // XA
+			"YES", // Savepoints
 		),
 	)
 	e.rows = rows
@@ -1711,14 +1712,14 @@ func (e *memtableRetriever) setDataForServersInfo() error {
 	rows := make([][]types.Datum, 0, len(serversInfo))
 	for _, info := range serversInfo {
 		row := types.MakeDatums(
-			info.ID,                                       // DDL_ID
-			info.IP,                                       // IP
-			int(info.Port),                                // PORT
-			int(info.StatusPort),                          // STATUS_PORT
-			info.Lease,                                    // LEASE
-			info.Version,                                  // VERSION
-			info.GitHash,                                  // GIT_HASH
-			info.BinlogStatus,                             // BINLOG_STATUS
+			info.ID,              // DDL_ID
+			info.IP,              // IP
+			int(info.Port),       // PORT
+			int(info.StatusPort), // STATUS_PORT
+			info.Lease,           // LEASE
+			info.Version,         // VERSION
+			info.GitHash,         // GIT_HASH
+			info.BinlogStatus,    // BINLOG_STATUS
 			stringutil.BuildStringFromLabels(info.Labels), // LABELS
 		)
 		rows = append(rows, row)
@@ -1786,10 +1787,10 @@ func (e *memtableRetriever) dataForTableTiFlashReplica(ctx sessionctx.Context, s
 				}
 			}
 			record := types.MakeDatums(
-				schema.Name.O,                                        // TABLE_SCHEMA
-				tbl.Name.O,                                           // TABLE_NAME
-				tbl.ID,                                               // TABLE_ID
-				int64(tbl.TiFlashReplica.Count),                      // REPLICA_COUNT
+				schema.Name.O,                   // TABLE_SCHEMA
+				tbl.Name.O,                      // TABLE_NAME
+				tbl.ID,                          // TABLE_ID
+				int64(tbl.TiFlashReplica.Count), // REPLICA_COUNT
 				strings.Join(tbl.TiFlashReplica.LocationLabels, ","), // LOCATION_LABELS
 				tbl.TiFlashReplica.Available,                         // AVAILABLE
 				progress,                                             // PROGRESS
@@ -1886,6 +1887,7 @@ func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
 	if err != nil {
 		return err
 	}
+
 	for _, storeStat := range storesStat.Stores {
 		ssts, err := tikvHelper.GetSST(storeStat.Store.Address)
 		if err != nil {
@@ -1899,8 +1901,14 @@ func (e *memtableRetriever) setDataForTableSST(ctx sessionctx.Context) error {
 				if err == nil {
 					log.Info("error table id", zap.Error(err))
 				}
+				tableName, err := tikvHelper.GetTableNameByRegionID(uint64(regionID), allSchemas)
+				if err == nil {
+					log.Info("error table id", zap.Error(err))
+				}
+
 				row := types.MakeDatums(
 					tableID,   //table id
+					tableName, // table name
 					sst.Name,  // sst name
 					regionID,  // region id
 					sst.Level, //level

@@ -19,15 +19,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/pingcap/log"
 	"io"
 	"math"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pingcap/log"
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/kvproto/pkg/kvrpcpb"
@@ -244,6 +246,22 @@ func (h *Helper) GetTableIDByRegionID(regionID uint64, allSchemas []*model.DBInf
 	}
 	f := h.FindTableIndexOfRegion(allSchemas, hotRange)
 	return f.TableID, nil
+}
+
+// GetTableNameByRegionID
+func (h *Helper) GetTableNameByRegionID(regionID uint64, allSchemas []*model.DBInfo) (string, error) {
+	region, err := h.RegionCache.LocateRegionByID(tikv.NewBackofferWithVars(context.Background(), 500, nil), regionID)
+	if err != nil {
+		logutil.BgLogger().Error("locate region failed", zap.Error(err))
+		return "", err
+	}
+
+	hotRange, err := NewRegionFrameRange(region)
+	if err != nil {
+		return "", err
+	}
+	f := h.FindTableIndexOfRegion(allSchemas, hotRange)
+	return f.TableName, nil
 }
 
 // FindTableIndexOfRegion finds what table is involved in this hot region. And constructs the new frame item for future use.
@@ -776,7 +794,7 @@ func (h *Helper) GetStoresStat() (*StoresStat, error) {
 
 type Sst struct {
 	Name     string `json:"name"`
-	StoreId  uint64 `json:"store_id"`
+	StoreID  uint64 `json:"store_id"`
 	Level    uint64 `json:"level"`
 	StartKey string `json:"start_key"`
 	EndKey   string `json:"end_key"`
@@ -784,21 +802,38 @@ type Sst struct {
 
 // GetSST
 func (h *Helper) GetSST(address string) ([]Sst, error) {
-	req, err := http.NewRequest("GET", util.InternalHTTPSchema()+"://"+address+"/engine/sst_status", nil)
-	if err != nil {
-		return nil, errors.Trace(err)
+	//req, err := http.NewRequest("GET", util.InternalHTTPSchema()+"://"+address+"/engine/sst_status", nil)
+	//if err != nil {
+	//	return nil, errors.Trace(err)
+	//}
+	//resp, err := util.InternalHTTPClient().Do(req)
+	//defer func() {
+	//	err = resp.Body.Close()
+	//	if err != nil {
+	//		logutil.BgLogger().Error("close body failed", zap.Error(err))
+	//	}
+	//}()
+	//var sst Sst
+	//err = json.NewDecoder(resp.Body).Decode(&sst)
+	//if err != nil {
+	//	return nil, errors.Trace(err)
+	//}
+	level := 0
+	r := rand.Intn(20000)
+	if r < 10 {
+		level = 4
+	} else if r > 19900 {
+		level = 5
+	} else {
+		level = 6
 	}
-	resp, err := util.InternalHTTPClient().Do(req)
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			logutil.BgLogger().Error("close body failed", zap.Error(err))
-		}
-	}()
-	var sst Sst
-	err = json.NewDecoder(resp.Body).Decode(&sst)
-	if err != nil {
-		return nil, errors.Trace(err)
+
+	sst := Sst{
+		Name:     "1",
+		Level:    uint64(level),
+		StartKey: "7480000000000000FF745F698000000000FF0000010380000000FF0000137F03800000FF0000367E45000000FC",
+		EndKey:   "7480000000000000FF745F698000000000FF0000010380000000FF0000138303800000FF000011543F000000FC",
+		StoreID:  5,
 	}
 	return []Sst{sst}, nil
 }
