@@ -83,8 +83,10 @@ func (p *ResourceGroupSettings) String() string {
 		writeSettingStringToBuilder(sb, "IO_WRITE_BANDWIDTH", p.IOWriteBandwidth, separatorFn)
 	}
 	// Once burst limit is negative, meaning allow burst with unlimit.
-	if p.BurstLimit < 0 {
+	if p.BurstLimit == -1 {
 		writeSettingItemToBuilder(sb, "BURSTABLE", separatorFn)
+	} else if p.BurstLimit == -2 {
+		writeSettingItemToBuilder(sb, "UNRESTRICTED", separatorFn)
 	}
 	if p.Runaway != nil {
 		fmt.Fprintf(sb, ", QUERY_LIMIT=(")

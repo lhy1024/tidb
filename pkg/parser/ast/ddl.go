@@ -2270,6 +2270,7 @@ const (
 
 	// Options
 	ResourceBurstableOpiton
+	ResourceUnrestrictedOption
 	ResourceGroupRunaway
 	ResourceGroupBackground
 )

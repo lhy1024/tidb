@@ -221,6 +221,12 @@ func SetDirectResourceGroupSettings(groupInfo *model.ResourceGroupInfo, opt *ast
 			limit = -1
 		}
 		resourceGroupSettings.BurstLimit = limit
+	case ast.ResourceUnrestrictedOption:
+		limit := int64(0)
+		if opt.BoolValue {
+			limit = -2
+		}
+		resourceGroupSettings.BurstLimit = limit
 	case ast.ResourceGroupRunaway:
 		if len(opt.RunawayOptionList) == 0 {
 			resourceGroupSettings.Runaway = nil

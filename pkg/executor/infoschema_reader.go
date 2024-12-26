@@ -3750,9 +3750,11 @@ func (e *memtableRetriever) setDataFromRunawayWatches(sctx sessionctx.Context) e
 
 // used in resource_groups
 const (
-	burstableStr      = "YES"
-	burstdisableStr   = "NO"
-	unlimitedFillRate = "UNLIMITED"
+	burstableStr           = "YES"
+	burstdisableStr        = "NO"
+	unrestrictedStr        = "YES"
+	unrestrictedDisableStr = "NO"
+	unlimitedFillRate      = "UNLIMITED"
 )
 
 func (e *memtableRetriever) setDataFromResourceGroups() error {
@@ -3764,6 +3766,7 @@ func (e *memtableRetriever) setDataFromResourceGroups() error {
 	for _, group := range resourceGroups {
 		//mode := ""
 		burstable := burstdisableStr
+		unrestricted := unrestrictedDisableStr
 		priority := pmodel.PriorityValueToName(uint64(group.Priority))
 		fillrate := unlimitedFillRate
 		// RU_PER_SEC = unlimited like the default group settings.
@@ -3835,14 +3838,18 @@ func (e *memtableRetriever) setDataFromResourceGroups() error {
 
 		switch group.Mode {
 		case rmpb.GroupMode_RUMode:
-			if group.RUSettings.RU.Settings.BurstLimit < 0 {
+			switch group.RUSettings.RU.Settings.BurstLimit {
+			case -1:
 				burstable = burstableStr
+			case -2:
+				unrestricted = unrestrictedStr
 			}
 			row := types.MakeDatums(
 				group.Name,
 				fillrate,
 				priority,
 				burstable,
+				unrestricted,
 				queryLimit,
 				background,
 			)
@@ -3857,6 +3864,7 @@ func (e *memtableRetriever) setDataFromResourceGroups() error {
 			//mode = "UNKNOWN_MODE"
 			row := types.MakeDatums(
 				group.Name,
+				nil,
 				nil,
 				nil,
 				nil,
