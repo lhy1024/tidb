@@ -13660,7 +13660,7 @@ yynewstate:
 		}
 	case 36:
 		{
-			parser.yyVAL.item = &ast.ResourceGroupOption{Tp: ast.ResourceBurstable, Burstable: ast.BurstableUnlimited}
+			parser.yyVAL.item = &ast.ResourceGroupOption{Tp: ast.ResourceBurstable, Burstable: ast.BurstableModerated}
 		}
 	case 37:
 		{
