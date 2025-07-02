@@ -50,6 +50,7 @@ import (
 	"github.com/pingcap/tidb/pkg/util/topsql"
 	topsqlstate "github.com/pingcap/tidb/pkg/util/topsql/state"
 	kvutil "github.com/tikv/client-go/v2/util"
+	"github.com/tikv/pd/client/constants"
 	atomicutil "go.uber.org/atomic"
 	"go.uber.org/zap"
 )
@@ -151,6 +152,13 @@ func (c *jobContext) notifyDone() {
 		// create table is enabled.
 		close(c.notifyCh)
 	}
+}
+
+func (c *jobContext) getKeyspaceID() uint32 {
+	if codec := c.store.GetCodec(); codec != nil {
+		return uint32(codec.GetKeyspaceID())
+	}
+	return constants.NullKeyspaceID
 }
 
 type workerType byte

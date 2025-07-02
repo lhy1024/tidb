@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pingcap/errors"
+	rmpb "github.com/pingcap/kvproto/pkg/resource_manager"
 	"github.com/pingcap/tidb/pkg/ddl/logutil"
 	"github.com/pingcap/tidb/pkg/ddl/resourcegroup"
 	"github.com/pingcap/tidb/pkg/domain/infosync"
@@ -58,6 +59,10 @@ func onCreateResourceGroup(jobCtx *jobContext, job *model.Job) (ver int64, _ err
 		logutil.DDLLogger().Warn("convert to resource group failed", zap.Error(err))
 		job.State = model.JobStateCancelled
 		return ver, errors.Trace(err)
+	}
+	keyspaceID := jobCtx.getKeyspaceID()
+	protoGroup.KeyspaceId = &rmpb.KeyspaceIDValue{
+		Value: keyspaceID,
 	}
 
 	switch groupInfo.State {
@@ -123,6 +128,10 @@ func onAlterResourceGroup(jobCtx *jobContext, job *model.Job) (ver int64, _ erro
 		return ver, errors.Trace(err)
 	}
 
+	keyspaceID := jobCtx.getKeyspaceID()
+	protoGroup.KeyspaceId = &rmpb.KeyspaceIDValue{
+		Value: keyspaceID,
+	}
 	err = infosync.ModifyResourceGroup(context.TODO(), protoGroup)
 	if err != nil {
 		logutil.DDLLogger().Warn("update resource group failed", zap.Error(err))
