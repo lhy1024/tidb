@@ -46,7 +46,7 @@ func GenSelectResultFromMPPResponse(dctx *distsqlctx.DistSQLContext, fieldTypes 
 		label:      "mpp",
 		resp:       resp,
 		rowLen:     len(fieldTypes),
-		fieldTypes: fieldTypes,
+		fieldTypes: [][]*types.FieldType{fieldTypes},
 		ctx:        dctx,
 		copPlanIDs: planIDs,
 		rootPlanID: rootID,
@@ -56,7 +56,7 @@ func GenSelectResultFromMPPResponse(dctx *distsqlctx.DistSQLContext, fieldTypes 
 
 // Select sends a DAG request, returns SelectResult.
 // In kvReq, KeyRanges is required, Concurrency/KeepOrder/Desc/IsolationLevel/Priority are optional.
-func Select(ctx context.Context, dctx *distsqlctx.DistSQLContext, kvReq *kv.Request, fieldTypes []*types.FieldType) (SelectResult, error) {
+func Select(ctx context.Context, dctx *distsqlctx.DistSQLContext, kvReq *kv.Request, fieldTypes []*types.FieldType, partialFts ...[]*types.FieldType) (SelectResult, error) {
 	r, ctx := tracing.StartRegionEx(ctx, "distsql.Select")
 	defer r.End()
 
@@ -123,13 +123,14 @@ func Select(ctx context.Context, dctx *distsqlctx.DistSQLContext, kvReq *kv.Requ
 		label:              "dag",
 		resp:               resp,
 		rowLen:             len(fieldTypes),
-		fieldTypes:         fieldTypes,
+		fieldTypes:         append(partialFts, fieldTypes),
 		ctx:                dctx,
 		sqlType:            label,
 		memTracker:         kvReq.MemTracker,
 		storeType:          kvReq.StoreType,
 		paging:             kvReq.Paging.Enable,
 		distSQLConcurrency: kvReq.Concurrency,
+		fullRespRead:       kvReq.KeepOrder && len(partialFts) > 0,
 	}, nil
 }
 
@@ -163,6 +164,19 @@ func SetTiFlashConfVarsInContext(ctx context.Context, dctx *distsqlctx.DistSQLCo
 func SelectWithRuntimeStats(ctx context.Context, dctx *distsqlctx.DistSQLContext, kvReq *kv.Request,
 	fieldTypes []*types.FieldType, copPlanIDs []int, rootPlanID int) (SelectResult, error) {
 	sr, err := Select(ctx, dctx, kvReq, fieldTypes)
+	if err != nil {
+		return nil, err
+	}
+	if selectResult, ok := sr.(*selectResult); ok {
+		selectResult.copPlanIDs = copPlanIDs
+		selectResult.rootPlanID = rootPlanID
+	}
+	return sr, nil
+}
+
+func SelectWithRuntimeStatsAndMultiOutputs(ctx context.Context, dctx *distsqlctx.DistSQLContext, kvReq *kv.Request,
+	fieldTypes [][]*types.FieldType, copPlanIDs []int, rootPlanID int) (SelectResult, error) {
+	sr, err := Select(ctx, dctx, kvReq, fieldTypes[len(fieldTypes)-1], fieldTypes[:len(fieldTypes)-1]...)
 	if err != nil {
 		return nil, err
 	}

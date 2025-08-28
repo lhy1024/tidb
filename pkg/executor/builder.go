@@ -4301,6 +4301,7 @@ func buildNoRangeIndexLookUpReader(b *executorBuilder, v *physicalop.PhysicalInd
 		index:                      is.Index,
 		keepOrder:                  is.KeepOrder,
 		byItems:                    is.ByItems,
+		byItems2:                   is.ByItems2,
 		desc:                       is.Desc,
 		tableRequest:               tableReq,
 		columns:                    ts.Columns,
@@ -4349,6 +4350,50 @@ func (b *executorBuilder) buildIndexLookUpReader(v *physicalop.PhysicalIndexLook
 	if err != nil {
 		b.err = err
 		return nil
+	}
+
+	dagPB := ret.dagPB
+	user := b.ctx.GetSessionVars().User
+	if (b.ctx.GetSessionVars().SessionAlias == "test" || (user != nil && user.Username == "test")) && (!is.KeepOrder || is.Table.GetPartitionInfo() == nil) {
+		var handleLen, extraColCnt int
+		if v.IndexPlans[0].(*physicalop.PhysicalIndexScan).NeedExtraOutputCol() {
+			extraColCnt = 1
+		}
+
+		if len(v.CommonHandleCols) != 0 {
+			handleLen = len(v.CommonHandleCols)
+		} else {
+			handleLen = 1
+		}
+
+		buildSidePrimaryOffsets := make([]uint32, 0, handleLen)
+		for i := handleLen; i > 0; i-- {
+			buildSidePrimaryOffsets = append(buildSidePrimaryOffsets, dagPB.OutputOffsets[len(dagPB.OutputOffsets)-i-extraColCnt])
+		}
+
+		tblInfo := ret.table.Meta()
+		position := uint32(len(dagPB.Executors))
+		tblScanExec := ret.tableRequest.Executors[0].TblScan
+		dagPB.Executors = append(dagPB.Executors, &tipb.Executor{
+			Tp: tipb.ExecType_TypeIndexLookup,
+			IndexLookup: &tipb.IndexLookup{
+				TableId:                    tblInfo.ID,
+				Columns:                    tblScanExec.Columns,
+				BuildSidePrimaryKeyOffsets: buildSidePrimaryOffsets,
+				PrimaryColumnIds:           tblScanExec.PrimaryColumnIds,
+				PrimaryPrefixColumnIds:     tblScanExec.PrimaryPrefixColumnIds,
+			},
+		})
+		dagPB.Executors = append(dagPB.Executors, ret.tableRequest.Executors[1:]...)
+		barrier := &tipb.PartialOutputBarrier{
+			OutputOffsets: dagPB.OutputOffsets,
+			EncodeType:    dagPB.EncodeType,
+			Position:      &position,
+		}
+		dagPB.ParitalOutputBarriers = append(dagPB.ParitalOutputBarriers, barrier)
+		dagPB.OutputOffsets = ret.tableRequest.OutputOffsets
+		dagPB.EncodeType = ret.tableRequest.EncodeType
+		ret.lookupPushDown = true
 	}
 
 	ts := v.TablePlans[0].(*physicalop.PhysicalTableScan)
